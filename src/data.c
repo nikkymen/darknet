@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -129,7 +130,6 @@ matrix load_image_augment_paths(char **paths, int n, int min, int max, int size,
     return X;
 }
 
-
 box_label *read_boxes(char *filename, int *n)
 {
     box_label *boxes = calloc(1, sizeof(box_label));
@@ -138,6 +138,9 @@ box_label *read_boxes(char *filename, int *n)
     float x, y, h, w;
     int id;
     int count = 0;
+
+    setlocale(LC_NUMERIC, "C");
+
     while(fscanf(file, "%d %f %f %f %f", &id, &x, &y, &w, &h) == 5){
         boxes = realloc(boxes, (count+1)*sizeof(box_label));
         boxes[count].id = id;
@@ -302,13 +305,16 @@ void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, 
     find_replace(labelpath, ".JPG", ".txt", labelpath);
     find_replace(labelpath, ".JPEG", ".txt", labelpath);
     int count = 0;
+
     box_label *boxes = read_boxes(labelpath, &count);
+
     randomize_boxes(boxes, count);
     correct_boxes(boxes, count, dx, dy, sx, sy, flip);
     if(count > num_boxes) count = num_boxes;
     float x,y,w,h;
     int id;
     int i;
+
 
     for (i = 0; i < count; ++i) {
         x =  boxes[i].x;

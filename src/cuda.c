@@ -1,13 +1,26 @@
 int gpu_index = 0;
 
+#include "cuda.h"
+
 #ifdef GPU
 
-#include "cuda.h"
 #include "utils.h"
 #include "blas.h"
 #include "assert.h"
 #include <stdlib.h>
 #include <time.h>
+
+int error_code()
+{
+    cudaError_t status = cudaPeekAtLastError();
+
+    if (status != cudaSuccess)
+    {
+        return 1;
+    }
+
+    return 0;
+}
 
 void cuda_set_device(int n)
 {
@@ -27,24 +40,27 @@ int cuda_get_device()
 void check_error(cudaError_t status)
 {
     //cudaDeviceSynchronize();
-    cudaError_t status2 = cudaGetLastError();
+   // cudaError_t status2 = cudaGetLastError();
+
+    cudaError_t status2 = cudaPeekAtLastError();
+
     if (status != cudaSuccess)
     {   
         const char *s = cudaGetErrorString(status);
         char buffer[256];
         printf("CUDA Error: %s\n", s);
-        assert(0);
+      //  assert(0);
         snprintf(buffer, 256, "CUDA Error: %s", s);
-        error(buffer);
+      //  error(buffer);
     } 
     if (status2 != cudaSuccess)
     {   
         const char *s = cudaGetErrorString(status);
         char buffer[256];
         printf("CUDA Error Prev: %s\n", s);
-        assert(0);
+     //   assert(0);
         snprintf(buffer, 256, "CUDA Error Prev: %s", s);
-        error(buffer);
+     //   error(buffer);
     } 
 }
 
@@ -89,7 +105,7 @@ cublasHandle_t blas_handle()
 
 float *cuda_make_array(float *x, size_t n)
 {
-    float *x_gpu;
+    float *x_gpu = 0;
     size_t size = sizeof(float)*n;
     cudaError_t status = cudaMalloc((void **)&x_gpu, size);
     check_error(status);
@@ -97,7 +113,7 @@ float *cuda_make_array(float *x, size_t n)
         status = cudaMemcpy(x_gpu, x, size, cudaMemcpyHostToDevice);
         check_error(status);
     }
-    if(!x_gpu) error("Cuda malloc failed\n");
+   // if(!x_gpu) error("Cuda malloc failed\n");
     return x_gpu;
 }
 
@@ -139,8 +155,10 @@ int *cuda_make_int_array(size_t n)
 
 void cuda_free(float *x_gpu)
 {
-    cudaError_t status = cudaFree(x_gpu);
-    check_error(status);
+    /*cudaError_t status = */cudaFree(x_gpu);
+
+    // TODO nk: fails on if(l.weights_gpu)          cuda_free(l.weights_gpu);
+    //check_error(status);
 }
 
 void cuda_push_array(float *x_gpu, float *x, size_t n)
@@ -155,6 +173,13 @@ void cuda_pull_array(float *x_gpu, float *x, size_t n)
     size_t size = sizeof(float)*n;
     cudaError_t status = cudaMemcpy(x, x_gpu, size, cudaMemcpyDeviceToHost);
     check_error(status);
+}
+
+#else
+
+int error_code()
+{
+    return 0;
 }
 
 #endif

@@ -184,6 +184,7 @@ void forward_region_layer(const region_layer l, network_state state)
     int count = 0;
     int class_count = 0;
     *(l.cost) = 0;
+
     for (b = 0; b < l.batch; ++b) {
         if(l.softmax_tree){
             int onlyclass = 0;
@@ -216,6 +217,7 @@ void forward_region_layer(const region_layer l, network_state state)
             for (i = 0; i < l.w; ++i) {
                 for (n = 0; n < l.n; ++n) {
                     int index = size*(j*l.w*l.n + i*l.n + n) + b*l.outputs;
+
                     box pred = get_region_box(l.output, l.biases, n, index, i, j, l.w, l.h);
                     float best_iou = 0;
                     int best_class = -1;
@@ -259,7 +261,11 @@ void forward_region_layer(const region_layer l, network_state state)
         for(t = 0; t < 30; ++t){
             box truth = float_to_box(state.truth + t*5 + b*l.truths);
 
-            if(!truth.x) break;
+            if(!truth.x)
+            {
+                break;
+            }
+
             float best_iou = 0;
             int best_index = 0;
             int best_n = 0;
@@ -317,7 +323,8 @@ void forward_region_layer(const region_layer l, network_state state)
     flatten(l.delta, l.w*l.h, size*l.n, l.batch, 0);
     #endif
     *(l.cost) = pow(mag_array(l.delta, l.outputs * l.batch), 2);
-    printf("Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, count);
+
+    fprintf(stderr, "Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, count);
 }
 
 void backward_region_layer(const region_layer l, network_state state)

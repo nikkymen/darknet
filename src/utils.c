@@ -45,6 +45,8 @@ void shuffle(void *arr, size_t n, size_t size)
         memcpy(arr+(j*size), arr+(i*size), size);
         memcpy(arr+(i*size), swp,          size);
     }
+
+    free(swp);
 }
 
 void del_arg(int argc, char **argv, int index)
@@ -157,7 +159,10 @@ void find_replace(char *str, char *orig, char *rep, char *output)
 
     sprintf(buffer, "%s", str);
     if(!(p = strstr(buffer, orig))){  // Is 'orig' even in 'str'?
-        sprintf(output, "%s", str);
+
+        sprintf(buffer, "%s", str);
+        memcpy(output, buffer, sizeof(buffer));
+        //sprintf(output, "%s", str);
         return;
     }
 
