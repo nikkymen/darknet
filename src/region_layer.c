@@ -347,10 +347,16 @@ void correct_region_boxes(box *boxes, int n, int w, int h, int netw, int neth, i
     }
 }
 
-void get_region_boxes(layer l, int w, int h, int netw, int neth, float thresh, float **probs, box *boxes, int only_objectness, int *map, float tree_thresh, int relative)
+void get_region_boxes(layer l, int w, int h, int netw, int neth, float thresh, float **probs, box *boxes, int only_objectness, int *map, float tree_thresh, int relative, float *predictions_)
 {
     int i,j,n,z;
     float *predictions = l.output;
+
+    if(predictions_)
+    {
+        predictions = predictions_;
+    }
+
     if (l.batch == 2) {
         float *flip = l.output + l.outputs;
         for (j = 0; j < l.h; ++j) {

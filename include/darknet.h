@@ -458,6 +458,7 @@ typedef struct network{
     float *truth;
     float *delta;
     float *workspace;
+    size_t workspace_size;
     int train;
     int index;
     float *cost;
@@ -520,6 +521,7 @@ typedef struct load_args{
     char **labels;
     int h;
     int w;
+    int c;
     int out_w;
     int out_h;
     int nh;
@@ -549,6 +551,9 @@ typedef struct{
     float left, right, top, bottom;
 } box_label;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 network load_network(char *cfg, char *weights, int clear);
 network *load_network_p(char *cfg, char *weights, int clear);
@@ -642,7 +647,7 @@ void save_weights_upto(network net, char *filename, int cutoff);
 void load_weights_upto(network *net, char *filename, int start, int cutoff);
 
 void zero_objectness(layer l);
-void get_region_boxes(layer l, int w, int h, int netw, int neth, float thresh, float **probs, box *boxes, int only_objectness, int *map, float tree_thresh, int relative);
+void get_region_boxes(layer l, int w, int h, int netw, int neth, float thresh, float **probs, box *boxes, int only_objectness, int *map, float tree_thresh, int relative, float *predictions);
 void free_network(network net);
 void set_batch_network(network *net, int b);
 image load_image(char *filename, int w, int h, int c);
@@ -738,5 +743,9 @@ void normalize_array(float *a, int n);
 int *read_intlist(char *s, int *n, int d);
 size_t rand_size_t();
 float rand_normal();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

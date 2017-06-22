@@ -9,94 +9,23 @@
 #include "detection_layer.h"
 #include "region_layer.h"
 #include "utils.h"
+#include "activations.h"
 
 #define DOABS 1
 
 namespace darknet
 {
 
-namespace
-{
-
-box get_region_box(float *x, float *biases, int n, int index, int i, int j, int w, int h)
-{
-    box b;
-    b.x = (i + logistic_activate(x[index + 0])) / w;
-    b.y = (j + logistic_activate(x[index + 1])) / h;
-    b.w = exp(x[index + 2]) * biases[2*n];
-    b.h = exp(x[index + 3]) * biases[2*n+1];
-    if(DOABS){
-        b.w = exp(x[index + 2]) * biases[2*n]   / w;
-        b.h = exp(x[index + 3]) * biases[2*n+1] / h;
-    }
-    return b;
-}
-
-void get_region_boxes(layer l, float *predictions, int w, int h, float thresh, float **probs, box *boxes, int only_objectness, int *map)
-{
-    int i,j,n;
-
-    for (i = 0; i < l.w*l.h; ++i){
-        int row = i / l.w;
-        int col = i % l.w;
-        for(n = 0; n < l.n; ++n){
-            int index = i*l.n + n;
-            int p_index = index * (l.classes + 5) + 4;
-            float scale = predictions[p_index];
-            if(l.classfix == -1 && scale < .5) scale = 0;
-            int box_index = index * (l.classes + 5);
-            boxes[index] = darknet::get_region_box(predictions, l.biases, n, box_index, col, row, l.w, l.h);
-            boxes[index].x *= w;
-            boxes[index].y *= h;
-            boxes[index].w *= w;
-            boxes[index].h *= h;
-
-            int class_index = index * (l.classes + 5) + 5;
-            if(l.softmax_tree){
-
-                hierarchy_predictions(predictions + class_index, l.classes, l.softmax_tree, 0);
-                int found = 0;
-                if(map){
-                    for(j = 0; j < 200; ++j){
-                        float prob = scale*predictions[class_index+map[j]];
-                        probs[index][j] = (prob > thresh) ? prob : 0;
-                    }
-                } else {
-                    for(j = l.classes - 1; j >= 0; --j){
-                        if(!found && predictions[class_index + j] > .5){
-                            found = 1;
-                        } else {
-                            predictions[class_index + j] = 0;
-                        }
-                        float prob = predictions[class_index+j];
-                        probs[index][j] = (scale > thresh) ? prob : 0;
-                    }
-                }
-            } else {
-                for(j = 0; j < l.classes; ++j){
-                    float prob = scale*predictions[class_index+j];
-                    probs[index][j] = (prob > thresh) ? prob : 0;
-                }
-            }
-            if(only_objectness){
-                probs[index][0] = scale;
-            }
-        }
-    }
-}
-
-}
-
 class Detector::Private
 {
 public:
-    Private(const std::string &config, const std::string &weights, int n_batch, int gpu_id)
+    Private(const std::string &config, const std::string &weights, int /*n_batch*/, int gpu_id)
     {
 #ifdef GPU
         cuda_set_device(gpu_id);
 #endif
 
-        _net = parse_network_cfg_batch((char*)(config.c_str()), n_batch);
+        _net = parse_network_cfg((char*)(config.c_str()));
 
         _error = error_code();
 
@@ -125,6 +54,7 @@ public:
 
             train_args.w = _net.w;
             train_args.h = _net.h;
+            train_args.c = _net.c;
             train_args.paths = 0;
             train_args.n = _net.batch * _net.subdivisions;
             train_args.m = 0;
@@ -193,7 +123,7 @@ public:
 
         for(int k = 0; k < n_data; ++k)
         {
-            darknet::get_region_boxes(_detection_layer, output.vals[k], 1, 1, threshold, _probs, _boxes, 0, 0);
+            get_region_boxes(_detection_layer, w, h, _net.w, _net.h, threshold, _probs, _boxes, 0, 0, 0.5, 1, output.vals[k]);
 
             do_nms_sort(_boxes, _probs, num, _detection_layer.classes, nms);
 

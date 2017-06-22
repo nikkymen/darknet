@@ -32,6 +32,7 @@ void train_compare(char *cfgfile, char *weightfile)
     load_args args = {0};
     args.w = net.w;
     args.h = net.h;
+    args.c = net.c;
     args.paths = paths;
     args.classes = 20;
     args.n = imgs;
@@ -104,6 +105,7 @@ void validate_compare(char *filename, char *weightfile)
     load_args args = {0};
     args.w = net.w;
     args.h = net.h;
+    args.c = net.c;
     args.paths = paths;
     args.classes = 20;
     args.n = num;
